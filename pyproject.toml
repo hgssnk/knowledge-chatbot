@@ -1,0 +1,15 @@
+[project]
+name = "interview-copilot-pdf"
+version = "0.1.0"
+description = "PDF をテキスト化して Bedrock KB 用 S3 バケットへ渡すパイプライン"
+requires-python = ">=3.13"
+
+# 実行時依存は requirements.txt（Docker ビルドが参照）。ここは開発ツールのみ。
+[project.optional-dependencies]
+dev = ["ruff", "cfn-lint", "boto3"]  # boto3 は Lambda ランタイム同梱、ローカル import/テスト用
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]  # pycodestyle / pyflakes / isort / pyupgrade / bugbear

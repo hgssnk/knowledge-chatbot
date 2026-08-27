@@ -1,0 +1,20 @@
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+.ruff_cache/
+
+# SAM / build 生成物
+.aws-sam/
+packaged.yaml
+
+# sam local invoke 用のローカル env ファイル
+env.json
+
+# ローカルのテスト用 PDF / 生成 txt（リポジトリ直下のみ。tests/ 等は対象外）
+/*.pdf
+/*.txt
+
+# OS / editor
+.DS_Store

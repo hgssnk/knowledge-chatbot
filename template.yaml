@@ -1,0 +1,210 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  interview-copilot PDF→テキスト取り込みパイプライン。
+  PDF アップロード → S3 → SNS → SQS → コンテナ Lambda で変換し、既存 txt バケットへ出力。
+  SNS を挟むことで、将来 SQS/Lambda を足して処理を並列に増やせる。
+  Managed KB / Data Source は CFN 未対応のため管理外（再取り込みは start-ingestion-job を別途）。
+  ビルド/デプロイは SAM（sam build がイメージをビルドし ECR へ push、sam deploy が本スタックを更新）。
+
+Parameters:
+  PdfBucketName:
+    Type: String
+    MinLength: 3
+    MaxLength: 63
+    AllowedPattern: "^[a-z0-9][a-z0-9.-]+[a-z0-9]$"
+    ConstraintDescription: S3 バケット名の規則（小文字英数字・ハイフン・ドット、3〜63 文字）
+    Description: 新規作成する PDF 入力バケット名（必須・デプロイ時に指定）
+
+  OutputBucketName:
+    Type: String
+    MinLength: 3
+    MaxLength: 63
+    AllowedPattern: "^[a-z0-9][a-z0-9.-]+[a-z0-9]$"
+    ConstraintDescription: S3 バケット名の規則（小文字英数字・ハイフン・ドット、3〜63 文字）
+    Description: 既存の txt 出力バケット名 = KB のデータソース（必須・デプロイ時に指定）
+
+  OutputPrefix:
+    Type: String
+    Default: ""
+    Description: 出力キーの接頭辞（空なら入力と同じキー階層）
+
+  OcrMode:
+    Type: String
+    Default: auto
+    AllowedValues: [auto, always, never]
+
+  LambdaMemoryMB:
+    Type: Number
+    Default: 2048
+    Description: OCR（onnxruntime + ラスタライズ）向けに余裕を持たせる
+
+  LambdaTimeoutSec:
+    Type: Number
+    Default: 300
+
+  QueueVisibilityTimeoutSec:
+    Type: Number
+    Default: 1800
+    Description: Lambda タイムアウトの 6 倍以上にする（AWS 推奨）
+
+  QueueMaxReceiveCount:
+    Type: Number
+    Default: 3
+    Description: この回数を超えて失敗したメッセージは DLQ へ
+
+  LambdaMaxConcurrency:
+    Type: Number
+    Default: 5
+    Description: SQS からの同時実行の上限（2〜1000）。増やせば並列度が上がる
+
+Resources:
+  # --- 通知経路: S3 → SNS → SQS ---------------------------------------
+
+  PdfUploadTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: interview-copilot-pdf-upload
+
+  # S3 からの publish を許可。SourceArn はバケット名文字列から組み立て、
+  # PdfBucket リソースを参照しないことで循環依存を断つ。
+  PdfUploadTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics: [!Ref PdfUploadTopic]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowS3Publish
+            Effect: Allow
+            Principal: { Service: s3.amazonaws.com }
+            Action: sns:Publish
+            Resource: !Ref PdfUploadTopic
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+              ArnLike:
+                aws:SourceArn: !Sub "arn:aws:s3:::${PdfBucketName}"
+
+  ConverterDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: interview-copilot-pdf-to-text-dlq
+      MessageRetentionPeriod: 345600 # 4日
+
+  ConverterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: interview-copilot-pdf-to-text
+      VisibilityTimeout: !Ref QueueVisibilityTimeoutSec
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt ConverterDLQ.Arn
+        maxReceiveCount: !Ref QueueMaxReceiveCount
+
+  ConverterQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues: [!Ref ConverterQueue]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowSNSSend
+            Effect: Allow
+            Principal: { Service: sns.amazonaws.com }
+            Action: sqs:SendMessage
+            Resource: !GetAtt ConverterQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Ref PdfUploadTopic
+
+  ConverterSubscription:
+    Type: AWS::SNS::Subscription
+    DependsOn: ConverterQueuePolicy
+    Properties:
+      TopicArn: !Ref PdfUploadTopic
+      Protocol: sqs
+      Endpoint: !GetAtt ConverterQueue.Arn
+      RawMessageDelivery: true # SQS の body を S3 通知そのものにする
+
+  # --- Lambda -------------------------------------------------------
+
+  ConverterFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: src
+      DockerTag: latest
+    Properties:
+      FunctionName: interview-copilot-pdf-to-text
+      PackageType: Image
+      Architectures: [x86_64]
+      MemorySize: !Ref LambdaMemoryMB
+      Timeout: !Ref LambdaTimeoutSec
+      EphemeralStorage:
+        Size: 1024
+      Environment:
+        Variables:
+          OUTPUT_BUCKET: !Ref OutputBucketName
+          OUTPUT_PREFIX: !Ref OutputPrefix
+          OCR_MODE: !Ref OcrMode
+      # SQS の消費権限（sqs:ReceiveMessage 等）は下の SQS イベントから SAM が自動付与する。
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: s3:GetObject
+              Resource: !Sub "arn:aws:s3:::${PdfBucketName}/*"
+            - Effect: Allow
+              Action: s3:PutObject
+              Resource: !Sub "arn:aws:s3:::${OutputBucketName}/*"
+      Events:
+        Queue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt ConverterQueue.Arn
+            # 1 メッセージ = 1 PDF 固定（handler が先頭レコードだけ処理）。OCR は CPU バウンドで
+            # バッチにすると 1 呼び出し内が逐次になり並列度が落ちるため。並列度は同時実行で調整。
+            BatchSize: 1
+            ScalingConfig:
+              MaximumConcurrency: !Ref LambdaMaxConcurrency
+
+  ConverterLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/interview-copilot-pdf-to-text
+      RetentionInDays: 14
+
+  # --- 入力バケット（通知を最後に配線） -----------------------------
+
+  PdfBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain # 原本 PDF は消さない
+    UpdateReplacePolicy: Retain
+    DependsOn: PdfUploadTopicPolicy
+    Properties:
+      BucketName: !Ref PdfBucketName
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      NotificationConfiguration:
+        TopicConfigurations:
+          - Event: s3:ObjectCreated:*
+            Topic: !Ref PdfUploadTopic
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: .pdf
+
+Outputs:
+  PdfBucket:
+    Value: !Ref PdfBucket
+  UploadTopicArn:
+    Value: !Ref PdfUploadTopic
+  ConverterQueueUrl:
+    Value: !Ref ConverterQueue
+  DeadLetterQueueUrl:
+    Value: !Ref ConverterDLQ
+  ConverterFunctionArn:
+    Value: !GetAtt ConverterFunction.Arn

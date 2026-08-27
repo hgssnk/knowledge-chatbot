@@ -1,0 +1,35 @@
+version: 0.2
+
+# CodePipeline の Build ステージ（CodeBuild アクション）用。
+#   sam build   … Dockerfile からコンテナイメージをビルド
+#   sam package … イメージを ECR へ push し、ImageUri 解決済みの packaged.yaml を出力
+# この後、同じ Build ステージの CloudFormation アクションが packaged.yaml から
+# 変更セットを作成する（実行は Deploy ステージの承認後）。
+#
+# 前提:
+#   - CodeBuild プロジェクトは privilegedMode=true（docker 実行のため）
+#   - 環境変数（CodeBuild プロジェクト側で設定）
+#       ECR_REPOSITORY_URI  例) <account>.dkr.ecr.<region>.amazonaws.com/interview-copilot/pdf-to-text
+
+phases:
+  install:
+    commands:
+      - pip install --upgrade --quiet aws-sam-cli
+
+  pre_build:
+    commands:
+      # sam package の docker push 用に ECR へログイン
+      - REGION="${AWS_REGION:-$AWS_DEFAULT_REGION}"
+      - aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "${ECR_REPOSITORY_URI%%/*}"
+
+  build:
+    commands:
+      - sam build
+      - >
+        sam package
+        --image-repository "$ECR_REPOSITORY_URI"
+        --output-template-file packaged.yaml
+
+artifacts:
+  files:
+    - packaged.yaml

@@ -1,0 +1,9 @@
+# PDF -> テキスト化（ローカル / Lambda 共用）
+# 品質に影響しない範囲で軽量な構成に寄せている:
+#   - opencv は headless かつ 4.11 系（4.12+ は wheel が肥大化。RapidOCR の用途では差なし）
+#   - onnxruntime の sympy 依存はパッケージング時に除外可（推論では未使用）
+pymupdf==1.28.2
+rapidocr==3.9.2
+onnxruntime==1.23.2
+numpy==2.5.2
+opencv-python-headless>=4.9,<4.12

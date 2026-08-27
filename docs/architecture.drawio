@@ -1,0 +1,151 @@
+<mxfile host="65bd71144e">
+    <diagram name="runtime" id="runtime">
+        <mxGraphModel dx="450" dy="784" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="820" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title" value="PDF 取り込みパイプライン — 実行時" style="text;html=1;align=left;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#232F3E;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="24" width="400" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="user" value="Operator" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#232F3E;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.user;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="152" width="60" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="pdf" value="S3&#xa;PdfBucket" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#7AA116;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;" parent="1" vertex="1">
+                    <mxGeometry x="220" y="145" width="78" height="78" as="geometry"/>
+                </mxCell>
+                <mxCell id="lambda" value="Lambda&#xa;ConverterFunction&#xa;(container image)" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;" parent="1" vertex="1">
+                    <mxGeometry x="770" y="145" width="78" height="78" as="geometry"/>
+                </mxCell>
+                <mxCell id="txt" value="S3&#xa;OutputBucket (既存)&#xa;KB データソース" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#7AA116;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;" parent="1" vertex="1">
+                    <mxGeometry x="980" y="145" width="78" height="78" as="geometry"/>
+                </mxCell>
+                <mxCell id="kb" value="Bedrock&#xa;Managed KB" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#01A88D;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.bedrock;" parent="1" vertex="1">
+                    <mxGeometry x="980" y="360" width="78" height="78" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_user_pdf" value="PDF upload" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontColor=#232F3E;" parent="1" source="user" target="pdf" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_pdf_sns" value="s3:ObjectCreated&#xa;suffix .pdf" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontColor=#232F3E;" parent="1" source="pdf" target="2" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="400" y="184" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e_sns_sqs" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontColor=#232F3E;" parent="1" source="2" target="3" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="478" y="184" as="sourcePoint"/>
+                        <mxPoint x="580" y="184" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e_sqs_lambda" value="BatchSize 1&#xa;MaxConcurrency 5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontColor=#232F3E;" parent="1" source="3" target="lambda" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="658" y="184" as="sourcePoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e_lambda_txt" value="PyMuPDF / RapidOCR&#xa;→ .txt" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontColor=#232F3E;" parent="1" source="lambda" target="txt" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_sqs_dlq" value="受信 3 回失敗" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;dashed=1;fontColor=#232F3E;" parent="1" source="3" target="4" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="619" y="223" as="sourcePoint"/>
+                        <mxPoint x="619" y="360" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e_txt_kb" value="start-ingestion-job&lt;br&gt;(現在は手動)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;dashed=1;fontColor=#232F3E;" parent="1" source="txt" target="kb" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="2" value="SNS&#xa;PdfUploadTopic" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#E7157B;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.sns;" vertex="1" parent="1">
+                    <mxGeometry x="400" y="145" width="78" height="78" as="geometry"/>
+                </mxCell>
+                <mxCell id="3" value="SQS&#xa;ConverterQueue" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#E7157B;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.sqs;" vertex="1" parent="1">
+                    <mxGeometry x="580" y="145" width="78" height="78" as="geometry"/>
+                </mxCell>
+                <mxCell id="4" value="SQS&#xa;DLQ" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#E7157B;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.sqs;" vertex="1" parent="1">
+                    <mxGeometry x="580" y="360" width="78" height="78" as="geometry"/>
+                </mxCell>
+                <mxCell id="future_box" value="チャット UI（将来実装）— KB を検索してチャットで壁打ち" style="rounded=1;dashed=1;dashPattern=6 6;html=1;fillColor=none;strokeColor=#999999;fontColor=#999999;verticalAlign=top;fontStyle=2;fontSize=12;" vertex="1" parent="1">
+                    <mxGeometry x="150" y="600" width="640" height="150" as="geometry"/>
+                </mxCell>
+                <mxCell id="web_user" value="利用者&#xa;（ブラウザ）" style="sketch=0;outlineConnect=0;fontColor=#666666;gradientColor=none;fillColor=#999999;strokeColor=none;dashed=1;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.user;" vertex="1" parent="1">
+                    <mxGeometry x="60" y="650" width="60" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="web" value="CloudFront + S3&#xa;静的サイト / ログイン" style="sketch=0;outlineConnect=0;fontColor=#666666;fillColor=#8C4FFF;strokeColor=#ffffff;dashed=1;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudfront;" vertex="1" parent="1">
+                    <mxGeometry x="200" y="640" width="78" height="78" as="geometry"/>
+                </mxCell>
+                <mxCell id="api" value="API Gateway&#xa;Cognito オーソライザー" style="sketch=0;outlineConnect=0;fontColor=#666666;fillColor=#E7157B;strokeColor=#ffffff;dashed=1;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.api_gateway;" vertex="1" parent="1">
+                    <mxGeometry x="400" y="640" width="78" height="78" as="geometry"/>
+                </mxCell>
+                <mxCell id="rag" value="Lambda&#xa;RetrieveAndGenerate" style="sketch=0;outlineConnect=0;fontColor=#666666;fillColor=#ED7100;strokeColor=#ffffff;dashed=1;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;" vertex="1" parent="1">
+                    <mxGeometry x="600" y="640" width="78" height="78" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_user_web" value="チャット" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;dashed=1;strokeColor=#999999;fontColor=#999999;" edge="1" parent="1" source="web_user" target="web">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_web_api" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;dashed=1;strokeColor=#999999;fontColor=#999999;" edge="1" parent="1" source="web" target="api">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_api_rag" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;dashed=1;strokeColor=#999999;fontColor=#999999;" edge="1" parent="1" source="api" target="rag">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_rag_kb" value="検索 + 生成" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;dashed=1;strokeColor=#999999;fontColor=#999999;" edge="1" parent="1" source="rag" target="kb">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+    <diagram name="cicd" id="cicd">
+        <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="640" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="ctitle" value="CI/CD — SAM + CodePipeline（2 スタック）" style="text;html=1;align=left;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#232F3E;" vertex="1" parent="1">
+                    <mxGeometry x="40" y="24" width="480" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="gh" value="GitHub" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#232F3E;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;aspect=fixed;shape=mxgraph.aws4.git_repository;" vertex="1" parent="1">
+                    <mxGeometry x="60" y="150" width="60" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="pipe" value="CodePipeline" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#C925D1;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.codepipeline;" vertex="1" parent="1">
+                    <mxGeometry x="200" y="140" width="78" height="78" as="geometry"/>
+                </mxCell>
+                <mxCell id="cb" value="CodeBuild&#xa;sam build + package" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#C925D1;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.codebuild;" vertex="1" parent="1">
+                    <mxGeometry x="380" y="140" width="78" height="78" as="geometry"/>
+                </mxCell>
+                <mxCell id="ecr" value="ECR" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.elastic_container_registry;" vertex="1" parent="1">
+                    <mxGeometry x="380" y="330" width="78" height="78" as="geometry"/>
+                </mxCell>
+                <mxCell id="csr" value="CloudFormation&#xa;CHANGE_SET_REPLACE" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#E7157B;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudformation;" vertex="1" parent="1">
+                    <mxGeometry x="560" y="140" width="78" height="78" as="geometry"/>
+                </mxCell>
+                <mxCell id="appr" value="Manual Approval&#xa;変更セット確認" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F2F2F2;strokeColor=#666666;fontColor=#232F3E;" vertex="1" parent="1">
+                    <mxGeometry x="720" y="150" width="130" height="58" as="geometry"/>
+                </mxCell>
+                <mxCell id="cse" value="CloudFormation&#xa;CHANGE_SET_EXECUTE" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#E7157B;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudformation;" vertex="1" parent="1">
+                    <mxGeometry x="920" y="140" width="78" height="78" as="geometry"/>
+                </mxCell>
+                <mxCell id="app" value="アプリスタック&#xa;template.yaml" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAF2F8;strokeColor=#2E86C1;fontColor=#232F3E;" vertex="1" parent="1">
+                    <mxGeometry x="925" y="330" width="140" height="58" as="geometry"/>
+                </mxCell>
+                <mxCell id="ce_gh_pipe" value="CodeConnection" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontColor=#232F3E;" edge="1" parent="1" source="gh" target="pipe">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ce_pipe_cb" value="Build" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontColor=#232F3E;" edge="1" parent="1" source="pipe" target="cb">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ce_cb_ecr" value="push image" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;dashed=1;fontColor=#232F3E;" edge="1" parent="1" source="cb" target="ecr">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ce_cb_csr" value="packaged.yaml" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontColor=#232F3E;" edge="1" parent="1" source="cb" target="csr">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ce_csr_appr" value="Deploy" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontColor=#232F3E;" edge="1" parent="1" source="csr" target="appr">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ce_appr_cse" value="承認" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontColor=#232F3E;" edge="1" parent="1" source="appr" target="cse">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ce_cse_app" value="deploy" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontColor=#232F3E;" edge="1" parent="1" source="cse" target="app">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
