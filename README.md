@@ -2,39 +2,7 @@
 
 PDF を **テキスト化して Bedrock Managed Knowledge Base のデータソース（S3）へ流し込む** サブシステム。
 
-```mermaid
-flowchart TB
-    dev([開発者]) -->|git push| gh[GitHub]
-
-    subgraph boot["ブートストラップスタック — codepipeline.yml"]
-      direction LR
-      pipe[CodePipeline] --> cb[CodeBuild<br/>sam build / package]
-      cb --> ecr[(ECR<br/>コンテナイメージ)]
-    end
-    gh -->|CodeConnection| pipe
-    cb -->|CHANGE_SET_REPLACE| cfn{{CloudFormation<br/>承認後に EXECUTE}}
-    cfn -->|provision / update| app
-
-    subgraph app["アプリスタック — template.yaml（SAM）"]
-      direction LR
-      pdf[(S3<br/>PdfBucket)] -->|ObjectCreated .pdf| sns[SNS<br/>PdfUploadTopic]
-      sns --> sqs[SQS<br/>ConverterQueue]
-      sqs -->|BatchSize 1| fn[Lambda<br/>ConverterFunction]
-      sqs -.->|3 回失敗| dlq[SQS<br/>DLQ]
-    end
-    ecr -.->|image| fn
-
-    op([Operator]) -->|PDF upload| pdf
-    fn -->|PyMuPDF / RapidOCR → .txt| txt[(S3 OutputBucket<br/>既存 / KB データソース)]
-    txt -.->|start-ingestion-job（手動）| kb[(Bedrock Managed KB<br/>既存・CFN 管理外)]
-
-    subgraph future["チャット UI（将来実装）"]
-      direction LR
-      web[CloudFront + S3<br/>静的サイト / ログイン] --> api[API Gateway<br/>Cognito] --> rag[Lambda<br/>RetrieveAndGenerate]
-    end
-    wuser([利用者]) -. チャット .-> web
-    rag -. 検索 + 生成 .-> kb
-```
+![docs/architecture.drawio.png](docs/architecture.drawio.png)
 
 太線 = プロビジョニング対象。`boot` は手動で 1 回デプロイ、`app` はパイプラインが作成/更新する。
 `OutputBucket` / `Bedrock KB` は既存リソース（名前 / ID で参照するだけ）。
@@ -47,7 +15,6 @@ Amazon Textract が日本語 OCR 非対応のため、変換を自前で持つ�
 - スキャン PDF は **RapidOCR（PP-OCRv4 / 日本語, onnxruntime・CPU）** にフォールバック
 - 変換は Python 単独で完結（外部 API 依存なし）
 
-![docs/architecture.drawio.png](docs/architecture.drawio.png)
 
 ## 実行時の設計ポイント
 
