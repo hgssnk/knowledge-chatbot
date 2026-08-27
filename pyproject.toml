@@ -1,5 +1,5 @@
 [project]
-name = "interview-copilot-pdf"
+name = "knowledge-chatbot-pdf"
 version = "0.1.0"
 description = "PDF をテキスト化して Bedrock KB 用 S3 バケットへ渡すパイプライン"
 requires-python = ">=3.13"

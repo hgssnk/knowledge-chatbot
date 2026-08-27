@@ -1,4 +1,4 @@
-# interview-copilot / PDF 取り込みパイプライン
+# knowledge-chatbot
 
 PDF を **テキスト化して Bedrock Managed Knowledge Base のデータソース（S3）へ流し込む** サブシステム。
 
@@ -57,7 +57,6 @@ flowchart LR
 ├─ template.yaml             アプリスタック（SAM）
 ├─ codepipeline.yml          CI/CD ブートストラップ
 ├─ buildspec.yml             Build ステージ（sam build + package）
-├─ samconfig.toml            ローカル sam 用デフォルト
 ├─ pyproject.toml            ruff 設定 / 開発ツール
 └─ docs/architecture.drawio
 ```
@@ -95,7 +94,7 @@ OCR モデル（PP-OCRv4 の 3 ファイル ≈ 15MB）は初回実行時に Mod
    ```bash
    aws cloudformation deploy \
      --template-file codepipeline.yml \
-     --stack-name interview-copilot-pipeline \
+     --stack-name knowledge-chatbot-pipeline \
      --capabilities CAPABILITY_IAM \
      --parameter-overrides \
        ConnectionArn=arn:aws:codeconnections:<REGION>:<ACCOUNT_ID>:connection/<UUID> \
@@ -103,7 +102,7 @@ OCR モデル（PP-OCRv4 の 3 ファイル ≈ 15MB）は初回実行時に Mod
    ```
 
 4. パイプラインが自動実行される。**Deploy ステージの承認**で変更セットを確認して承認
-5. アプリスタック `interview-copilot-pdf` が作成される。`PdfBucket` に PDF を置くと
+5. アプリスタック `knowledge-chatbot-pdf` が作成される。`PdfBucket` に PDF を置くと
    `OutputBucket` に `.txt` が現れる
 6. KB へ反映（現状は手動）:
 
@@ -123,7 +122,7 @@ OCR モデル（PP-OCRv4 の 3 ファイル ≈ 15MB）は初回実行時に Mod
 
 ## 運用メモ
 
-- **DLQ**: `interview-copilot-pdf-to-text-dlq`。変換に 3 回失敗した PDF が入る。
+- **DLQ**: `knowledge-chatbot-pdf-to-text-dlq`。変換に 3 回失敗した PDF が入る。
   S3→SNS 通知の初期化時に飛ぶ `s3:TestEvent` も 1 件入るので、初回は空にしてよい
 - **再取り込み**: 変換後の KB 反映は手動 `start-ingestion-job`（自動化は将来）
 - **メディア抽出**: KB データソースの `mediaExtractionConfiguration` は image/audio/video を

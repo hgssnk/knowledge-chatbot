@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  interview-copilot PDF→テキスト取り込みパイプライン。
+  knowledge-chatbot PDF→テキスト取り込みパイプライン。
   PDF アップロード → S3 → SNS → SQS → コンテナ Lambda で変換し、既存 txt バケットへ出力。
   SNS を挟むことで、将来 SQS/Lambda を足して処理を並列に増やせる。
   Managed KB / Data Source は CFN 未対応のため管理外（再取り込みは start-ingestion-job を別途）。
@@ -64,7 +64,7 @@ Resources:
   PdfUploadTopic:
     Type: AWS::SNS::Topic
     Properties:
-      TopicName: interview-copilot-pdf-upload
+      TopicName: knowledge-chatbot-pdf-upload
 
   # S3 からの publish を許可。SourceArn はバケット名文字列から組み立て、
   # PdfBucket リソースを参照しないことで循環依存を断つ。
@@ -89,13 +89,13 @@ Resources:
   ConverterDLQ:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: interview-copilot-pdf-to-text-dlq
+      QueueName: knowledge-chatbot-pdf-to-text-dlq
       MessageRetentionPeriod: 345600 # 4日
 
   ConverterQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: interview-copilot-pdf-to-text
+      QueueName: knowledge-chatbot-pdf-to-text
       VisibilityTimeout: !Ref QueueVisibilityTimeoutSec
       RedrivePolicy:
         deadLetterTargetArn: !GetAtt ConverterDLQ.Arn
@@ -135,7 +135,7 @@ Resources:
       DockerContext: src
       DockerTag: latest
     Properties:
-      FunctionName: interview-copilot-pdf-to-text
+      FunctionName: knowledge-chatbot-pdf-to-text
       PackageType: Image
       Architectures: [x86_64]
       MemorySize: !Ref LambdaMemoryMB
@@ -170,7 +170,7 @@ Resources:
   ConverterLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: /aws/lambda/interview-copilot-pdf-to-text
+      LogGroupName: /aws/lambda/knowledge-chatbot-pdf-to-text
       RetentionInDays: 14
 
   # --- 入力バケット（通知を最後に配線） -----------------------------

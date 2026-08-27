@@ -1,13 +1,13 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >
-  interview-copilot PDF パイプラインの CI/CD ブートストラップ。
+  knowledge-chatbot PDF パイプラインの CI/CD ブートストラップ。
   Source(GitHub) -> Build(sam build/package + 変更セット作成) -> Deploy(承認 + 変更セット実行)。
   アプリ本体は template.yaml（SAM）。本スタックはそれをデプロイする土台のみで、
   アプリのリソースは一切持たない（自己参照を避けるため分離）。
 
 # 前提: 承認済みの CodeConnections(GitHub) が既にあること。
 # デプロイ: aws cloudformation deploy --template-file codepipeline.yml
-#            --stack-name interview-copilot-pipeline --capabilities CAPABILITY_IAM
+#            --stack-name knowledge-chatbot-pipeline --capabilities CAPABILITY_IAM
 #            --parameter-overrides ConnectionArn=<arn> RepositoryId=<owner/repo>
 
 Parameters:
@@ -24,11 +24,11 @@ Parameters:
     Default: main
   AppStackName:
     Type: String
-    Default: interview-copilot-pdf
-    Description: アプリスタック名（samconfig.toml の stack_name と一致させる）
+    Default: knowledge-chatbot-pdf
+    Description: パイプラインが作成/更新するアプリスタック名
   EcrRepositoryName:
     Type: String
-    Default: interview-copilot/pdf-to-text
+    Default: knowledge-chatbot/pdf-to-text
 
   # アプリスタック（template.yaml）へ渡すバケット名。アカウント ID を含むため
   # リポジトリには置かず、この bootstrap スタックのデプロイ時に指定する。
@@ -47,7 +47,7 @@ Resources:
   ArtifactBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "interview-copilot-pipeline-artifacts-${AWS::AccountId}"
+      BucketName: !Sub "knowledge-chatbot-pipeline-artifacts-${AWS::AccountId}"
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -219,7 +219,7 @@ Resources:
                   - sns:ListSubscriptionsByTopic
                   - sns:TagResource
                   - sns:UntagResource
-                Resource: !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:interview-copilot-*"
+                Resource: !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:knowledge-chatbot-*"
               - Sid: Sqs
                 Effect: Allow
                 Action:
@@ -229,11 +229,11 @@ Resources:
                   - sqs:SetQueueAttributes
                   - sqs:TagQueue
                   - sqs:UntagQueue
-                Resource: !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:interview-copilot-*"
+                Resource: !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:knowledge-chatbot-*"
               - Sid: Lambda
                 Effect: Allow
                 Action: lambda:*
-                Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:interview-copilot-*"
+                Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:knowledge-chatbot-*"
               - Sid: LambdaEventSourceMapping
                 Effect: Allow
                 Action:
@@ -252,7 +252,7 @@ Resources:
                   - logs:DescribeLogGroups
                   - logs:TagResource
                   - logs:UntagResource
-                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/interview-copilot-*"
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/knowledge-chatbot-*"
               - Sid: IamForLambdaRole
                 Effect: Allow
                 Action:

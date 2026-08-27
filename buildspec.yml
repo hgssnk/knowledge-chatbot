@@ -9,7 +9,7 @@ version: 0.2
 # 前提:
 #   - CodeBuild プロジェクトは privilegedMode=true（docker 実行のため）
 #   - 環境変数（CodeBuild プロジェクト側で設定）
-#       ECR_REPOSITORY_URI  例) <account>.dkr.ecr.<region>.amazonaws.com/interview-copilot/pdf-to-text
+#       ECR_REPOSITORY_URI  例) <account>.dkr.ecr.<region>.amazonaws.com/knowledge-chatbot/pdf-to-text
 
 phases:
   install:
