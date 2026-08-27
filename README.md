@@ -47,7 +47,7 @@ Amazon Textract が日本語 OCR 非対応のため、変換を自前で持つ�
 - スキャン PDF は **RapidOCR（PP-OCRv4 / 日本語, onnxruntime・CPU）** にフォールバック
 - 変換は Python 単独で完結（外部 API 依存なし）
 
-> 編集可能な構成図（runtime / cicd の 2 ページ）: [docs/architecture.drawio](docs/architecture.drawio)
+![docs/architecture.drawio.png](docs/architecture.drawio.png)
 
 ## 実行時の設計ポイント
 
