@@ -47,7 +47,7 @@ Resources:
   ArtifactBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "knowledge-chatbot-pipeline-artifacts-${AWS::AccountId}"
+      BucketName: !Sub "${AWS::StackName}-artifacts-${AWS::AccountId}"
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -146,6 +146,8 @@ Resources:
                   - ecr:PutImage
                   - ecr:BatchGetImage
                   - ecr:GetDownloadUrlForLayer
+                  - ecr:DescribeImages
+                  - ecr:DescribeRepositories
                 Resource: !GetAtt EcrRepository.Arn
 
   BuildProject:
@@ -219,7 +221,7 @@ Resources:
                   - sns:ListSubscriptionsByTopic
                   - sns:TagResource
                   - sns:UntagResource
-                Resource: !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:knowledge-chatbot-*"
+                Resource: !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${AppStackName}-*"
               - Sid: Sqs
                 Effect: Allow
                 Action:
@@ -229,11 +231,11 @@ Resources:
                   - sqs:SetQueueAttributes
                   - sqs:TagQueue
                   - sqs:UntagQueue
-                Resource: !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:knowledge-chatbot-*"
+                Resource: !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${AppStackName}-*"
               - Sid: Lambda
                 Effect: Allow
                 Action: lambda:*
-                Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:knowledge-chatbot-*"
+                Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AppStackName}-*"
               - Sid: LambdaEventSourceMapping
                 Effect: Allow
                 Action:
@@ -252,7 +254,7 @@ Resources:
                   - logs:DescribeLogGroups
                   - logs:TagResource
                   - logs:UntagResource
-                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/knowledge-chatbot-*"
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AppStackName}-*"
               - Sid: IamForLambdaRole
                 Effect: Allow
                 Action:
@@ -321,6 +323,10 @@ Resources:
                   - cloudformation:GetTemplate
                   - cloudformation:GetTemplateSummary
                 Resource: !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AppStackName}/*"
+              - Sid: SamTransform
+                Effect: Allow
+                Action: cloudformation:CreateChangeSet
+                Resource: !Sub "arn:aws:cloudformation:${AWS::Region}:aws:transform/Serverless-2016-10-31"
               - Sid: PassCfnRole
                 Effect: Allow
                 Action: iam:PassRole

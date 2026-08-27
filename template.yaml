@@ -170,7 +170,7 @@ Resources:
   ConverterLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: /aws/lambda/knowledge-chatbot-pdf-to-text
+      LogGroupName: !Sub "/aws/lambda/${ConverterFunction}"
       RetentionInDays: 14
 
   # --- 入力バケット（通知を最後に配線） -----------------------------
