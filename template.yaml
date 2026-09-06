@@ -182,6 +182,7 @@ Resources:
     DependsOn: PdfUploadTopicPolicy
     Properties:
       BucketName: !Ref PdfBucketName
+      BucketNamespace: account-regional
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true

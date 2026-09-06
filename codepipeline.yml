@@ -208,7 +208,7 @@ Resources:
                   - s3:PutEncryptionConfiguration
                   - s3:PutBucketPublicAccessBlock
                   - s3:GetBucketPublicAccessBlock
-                Resource: "arn:aws:s3:::bedrock-artifact-pdf-*"
+                Resource: !Sub "arn:aws:s3:::${AppPdfBucketName}"
               - Sid: Sns
                 Effect: Allow
                 Action:
@@ -353,6 +353,7 @@ Resources:
                 ConnectionArn: !Ref ConnectionArn
                 FullRepositoryId: !Ref RepositoryId
                 BranchName: !Ref BranchName
+                DetectChanges: "true"
               OutputArtifacts:
                 - Name: SourceArtifact
 
